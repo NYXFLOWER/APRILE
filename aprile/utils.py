@@ -151,6 +151,15 @@ def get_indices_mask(indices, in_indices):
 
 
 def get_edge_index_from_coo(mat, bidirection):
+    """convert sparse.coo to sparse torch.Tensor
+
+    Args:
+        mat (sparse.coo): a sparse adjacency matrix
+        bidirection (bool): if use undirected edge
+
+    Returns:
+        torch.Tensor: shape (2, n_edge)
+    """
     if bidirection:
         mask = mat.row > mat.col
         half = np.concatenate(
