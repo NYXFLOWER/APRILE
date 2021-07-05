@@ -1,0 +1,12 @@
+recommonmark
+sphinx-rtd-theme
+nbsphinx
+nbsphinx-link
+
+scikit-learn>=0.21.2
+scipy
+matplotlib
+networkx
+pandas
+goatools
+cython

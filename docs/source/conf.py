@@ -35,7 +35,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
-    'myst_parser',
+    'recommonmark',
 ]
 
 source_suffix = ['.rst', '.md']
