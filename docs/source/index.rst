@@ -10,9 +10,9 @@ Welcome to APRILE's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-aprile
-aprile.modules
-aprile.pure_query
+   aprile
+   aprile.modules
+   aprile.pure_query
 
 Indices and tables
 ==================
