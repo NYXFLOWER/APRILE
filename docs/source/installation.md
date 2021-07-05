@@ -1,6 +1,6 @@
 # Installation
 
-## Prerequisites:
+## Prerequisites
 PyKale requires a Python version 3.7 or above. Before installing `aprile`, [PyTorch](https://pytorch.org/) and [PyTorch Geometric](https://github.com/rusty1s/pytorch_geometric#installation) are required to be installed matching your hardware. 
 
 

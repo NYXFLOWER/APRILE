@@ -17,7 +17,7 @@ Welcome to APRILE's documentation!
    :maxdepth: 1
    :caption: APRILE API:
 
-   modules
+   aprile
 
 Indices and tables
 ==================

@@ -10,3 +10,5 @@ networkx
 pandas
 goatools
 cython
+torch-geometric
+torchvision
