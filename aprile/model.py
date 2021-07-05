@@ -19,16 +19,16 @@ import torch
 # from goatools.goea.go_enrichment_ns import GOEnrichmentStudyNS
 # from goatools.godag_plot import plot_gos, plot_results, plot_goid2goobj
 
-# from aprile.utils import remove_bidirection, visualize_graph
+from aprile.utils import remove_bidirection, visualize_graph
 
-# torch.manual_seed(1111)
-# np.random.seed(1111)
-# EPS = 1e-13
+torch.manual_seed(1111)
+np.random.seed(1111)
+EPS = 1e-13
 
-# # load data
-# aprile_dir = os.path.dirname(os.path.abspath(__file__))
-# with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
-#     gdata = pickle.load(f)
+# load data
+aprile_dir = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
+    gdata = pickle.load(f)
 
 
 class MultiInnerProductDecoder(torch.nn.Module):
