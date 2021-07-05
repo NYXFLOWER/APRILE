@@ -27,8 +27,8 @@ EPS = 1e-13
 
 # load data
 aprile_dir = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
-    gdata = pickle.load(f)
+# with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
+#     gdata = pickle.load(f)
 
 
 class MultiInnerProductDecoder(torch.nn.Module):
