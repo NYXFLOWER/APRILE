@@ -55,7 +55,7 @@ setup(
 		'': ['*.pt', '*.pkl']
 	},
 	data_files=[
-		('', ['aprile/data.pkl', 'aprile/POSE-pred.pt', 'aprile/pure_query/data_dict.pkl'])
+		('', ['aprile/data.pkl', 'aprile/POSE-pred.pt', 'aprile/data_dict.pkl'])
 	],
 	classifiers=[
 		"Intended Audience :: Developers",

@@ -1,18 +1,25 @@
 .. APRILE documentation master file, created by
-   sphinx-quickstart on Mon Jul  5 13:59:44 2021.
+   sphinx-quickstart on Mon Jul  5 15:28:30 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
+
+.. math::
 
 Welcome to APRILE's documentation!
 ==================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Getting Started:
+
+   introduction
+   installation
+
+.. toctree::
+   :maxdepth: 1
+   :caption: APRILE API:
 
    modules
-   aprile
-   aprile.pure_query
 
 Indices and tables
 ==================

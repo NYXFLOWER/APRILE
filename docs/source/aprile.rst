@@ -1,13 +1,6 @@
 aprile package
 ==============
 
-Subpackages
------------
-
-.. toctree::
-
-   aprile.pure_query
-
 Submodules
 ----------
 
@@ -15,6 +8,14 @@ aprile.model module
 -------------------
 
 .. automodule:: aprile.model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprile.pure\_query module
+-------------------------
+
+.. automodule:: aprile.pure_query
    :members:
    :undoc-members:
    :show-inheritance:
