@@ -1,13 +1,13 @@
 import torch
 # from torch_scatter import scatter_add
 # from torch_geometric.utils import add_remaining_self_loops
-# import numpy as np
+import numpy as np
 # import pandas
 # from torch.nn import Parameter
 # from torch_geometric.nn.conv import MessagePassing
 # import torch.nn.functional as F
-# import os
-# import pickle
+import os
+import pickle
 
 # from goatools.base import \
 #     download_go_basic_obo  # Get http://geneontology.org/ontology/go-basic.obo
