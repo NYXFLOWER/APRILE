@@ -1,0 +1,9 @@
+bluepy
+scikit-learn>=0.21.2
+scipy
+matplotlib
+networkx>=2.4
+pandas
+numpy
+goatools
+cython
