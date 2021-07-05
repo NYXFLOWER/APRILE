@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+.pypirc
+environment.yml
+environment_query.txt
+gene2go
+go-basic.obo
+aprile/data.pkl
+aprile/pure_query/data_dict.pkl

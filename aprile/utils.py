@@ -168,18 +168,30 @@ def visualize_graph(pp_idx, pp_weight, pd_idx, pd_weight, pp_adj, d1, d2,
                     out_path,
                     protein_name_dict=None, drug_name_dict=None, hiden=True,
                     size=(40, 40)):
-    """
-    :param pp_idx: integer tensor of the shape (2, n_pp_edges)
-    :param pp_weight: float tensor of the shape (1, n_pp_edges), values within (0,1)
-    :param pd_idx: integer tensor of the shape (2, n_pd_edges)
-    :param pd_weight: float tensor of the shape (1, n_pd_edges), values within (0,1)
-    :param protein_name_dict: store elements {protein_index -> protein name}
-    :param drug_name_dict: store elements {drug_index -> drug name}
+    """visualize Aprile-Exp's outputs
+        1. use different color for pp and pd edges
+        2. annotate the weight of each edge near the edge (or annotate with the tranparentness of edges for each edge)
+        3. annotate the name of each node near the node, if name_dict=None, then annotate with node's index
 
-    1. use different color for pp and pd edges
-    2. annotate the weight of each edge near the edge (or annotate with the tranparentness of edges for each edge)
-    3. annotate the name of each node near the node, if name_dict=None, then annotate with node's index
+    Args:
+        pp_idx (torch.Tensor): integer tensor (2, n_pp_edges)
+        pp_weight (torch.Tensor): float tensor (1, n_pp_edges), values with (0, 1)
+        pd_idx (torch.Tensor): integer tensor (2, n_pd_edges)
+        pd_weight (torch.Tensor): float tensor (1, n_pd_edges), values with (0, 1)
+        pp_adj ([type]): [description]
+        d1 (list): drug list
+        d2 (list): drug list pairing with `d1`
+        out_path (str): output path
+        protein_name_dict (dict, optional): the mapping for protein makers' text. Defaults to None.
+        drug_name_dict (dict, optional): the mapping for drug markers' text. Defaults to None.
+        hiden (bool, optional): if show related edge with edge weight of 0.01. Defaults to True.
+        size (tuple, optional): the figure size. Defaults to (40, 40).
+
+    Returns:
+        networkx.Graph: the graph object
+        matplotlib.pyplot.figure: the ploted figure
     """
+
     G = nx.Graph()
     pp_edge, pd_edge, pp_link = [], [], []
     p_node, d_node = set(), set()

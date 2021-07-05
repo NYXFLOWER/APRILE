@@ -32,7 +32,7 @@ with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
 
 
 class MultiInnerProductDecoder(torch.nn.Module):
-    r"""DistMult tensor factorization for side effect prediction, 
+    """DistMult tensor factorization for side effect prediction, 
 
     Args:
         in_dim (int): the dimension of drug feature
@@ -47,7 +47,7 @@ class MultiInnerProductDecoder(torch.nn.Module):
         self._reset_parameters()
 
     def forward(self, z, edge_index, edge_type, sigmoid=True):
-        r"""forward propagation to predict {(drug, drug, side_effect)} 
+        """forward propagation to predict {(drug, drug, side_effect)} 
 
         Args:
             z (torch.Tensor): drug features
@@ -66,7 +66,7 @@ class MultiInnerProductDecoder(torch.nn.Module):
 
 
 class AprileGCN(MessagePassing):
-    r"""Graph convolutional neural network [1] with edge weights/masks.
+    """Graph convolutional neural network [1] with edge weights/masks.
         [1]: `"Semi-supervised Classification with Graph Convolutional Networks" <https://arxiv.org/abs/1609.02907>` (ICLR 2017) paper.
 
     Note: 
