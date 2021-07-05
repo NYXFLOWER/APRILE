@@ -22,6 +22,6 @@ scipy
 matplotlib
 networkx
 pandas
-# numpy
+numpy
 goatools
 torch-geometric==1.4.2
