@@ -19,7 +19,7 @@ from goatools.anno.genetogo_reader import Gene2GoReader
 from goatools.goea.go_enrichment_ns import GOEnrichmentStudyNS
 from goatools.godag_plot import plot_gos, plot_results, plot_goid2goobj
 
-from aprile.utils import remove_bidirection, visualize_graph
+from aprile.utils import remove_bidirection
 from aprile.pure_query import *
 
 torch.manual_seed(1111)
