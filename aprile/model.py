@@ -30,14 +30,6 @@ aprile_dir = os.path.dirname(os.path.abspath(__file__))
 # with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
 #     gdata = pickle.load(f)
 
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data_dict.pkl'), 'rb') as f:
-    data = pickle.load(f)
-
-class DataTmp(object):
-    pass
-
-gdata = DataTmp()
-gdata.__dict__ = data
 
 class MultiInnerProductDecoder(torch.nn.Module):
     """DistMult tensor factorization for side effect prediction, 
@@ -301,544 +293,544 @@ class Pre_mask(torch.nn.Module):
         self.pd_weight.data[mask] = 0.0
 
 
-class AprileExplainer(object):
-    """Explain APRILE-Predictor's predictions by given a small set of drug targets and protein-protein interactions
-    """
-    def __init__(self, model, data, device):
-        super(AprileExplainer, self).__init__()
-        self.model = model
-        self.data = data
-        self.device = device
+# class AprileExplainer(object):
+#     """Explain APRILE-Predictor's predictions by given a small set of drug targets and protein-protein interactions
+#     """
+#     def __init__(self, model, data, device):
+#         super(AprileExplainer, self).__init__()
+#         self.model = model
+#         self.data = data
+#         self.device = device
 
-    def explain(self, drug_list_1, drug_list_2, side_effect_list, regularization=1):
-        data = self.data
-        model = self.model
-        device = self.device
+#     def explain(self, drug_list_1, drug_list_2, side_effect_list, regularization=1):
+#         data = self.data
+#         model = self.model
+#         device = self.device
 
-        pre_mask = Pre_mask(data.pp_index.shape[1] // 2, data.pd_index.shape[1]).to(device)
-        data = data.to(device)
-        model = model.to(device)
+#         pre_mask = Pre_mask(data.pp_index.shape[1] // 2, data.pd_index.shape[1]).to(device)
+#         data = data.to(device)
+#         model = model.to(device)
 
-        for gcn in self.model.pp.conv_list:
-            gcn.cached = False
-        self.model.pd.conv.cached = False
-        self.model.eval()
+#         for gcn in self.model.pp.conv_list:
+#             gcn.cached = False
+#         self.model.pd.conv.cached = False
+#         self.model.eval()
 
-        pp_static_edge_weights = torch.ones((data.pp_index.shape[1])).to(device)
-        pd_static_edge_weights = torch.ones((data.pd_index.shape[1])).to(device)
+#         pp_static_edge_weights = torch.ones((data.pp_index.shape[1])).to(device)
+#         pd_static_edge_weights = torch.ones((data.pd_index.shape[1])).to(device)
 
-        optimizer = torch.optim.Adam(pre_mask.parameters(), lr=0.01)
-        fake_optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+#         optimizer = torch.optim.Adam(pre_mask.parameters(), lr=0.01)
+#         fake_optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-        z = model.pp(data.p_feat, data.pp_index, pp_static_edge_weights)
-        z = model.pd(z, data.pd_index, pd_static_edge_weights)
+#         z = model.pp(data.p_feat, data.pp_index, pp_static_edge_weights)
+#         z = model.pd(z, data.pd_index, pd_static_edge_weights)
 
-        P = torch.sigmoid((z[drug_list_1] * z[drug_list_2] * model.mip.weight[side_effect_list]).sum(dim=1))
+#         P = torch.sigmoid((z[drug_list_1] * z[drug_list_2] * model.mip.weight[side_effect_list]).sum(dim=1))
 
-        if len(drug_list_1) < 5:
-            print(P.tolist())
+#         if len(drug_list_1) < 5:
+#             print(P.tolist())
 
-        tmp = 0.0
-        pre_mask.reset_parameters()
-        for i in range(9999):
-            model.train()
-            pre_mask.desaturate()
-            optimizer.zero_grad()
-            fake_optimizer.zero_grad()
+#         tmp = 0.0
+#         pre_mask.reset_parameters()
+#         for i in range(9999):
+#             model.train()
+#             pre_mask.desaturate()
+#             optimizer.zero_grad()
+#             fake_optimizer.zero_grad()
 
-            half_mask = torch.nn.Hardtanh(0, 1)(pre_mask.pp_weight)
-            pp_mask = torch.cat([half_mask, half_mask])
+#             half_mask = torch.nn.Hardtanh(0, 1)(pre_mask.pp_weight)
+#             pp_mask = torch.cat([half_mask, half_mask])
 
-            pd_mask = torch.nn.Hardtanh(0, 1)(pre_mask.pd_weight)
+#             pd_mask = torch.nn.Hardtanh(0, 1)(pre_mask.pd_weight)
 
-            z = model.pp(data.p_feat, data.pp_index, pp_mask)
+#             z = model.pp(data.p_feat, data.pp_index, pp_mask)
 
-            z = model.pd(z, data.pd_index, pd_mask)
+#             z = model.pd(z, data.pd_index, pd_mask)
 
-            P = torch.sigmoid((z[drug_list_1] * z[drug_list_2] * model.mip.weight[side_effect_list]).sum(dim=1))
-            EPS = 1e-7
+#             P = torch.sigmoid((z[drug_list_1] * z[drug_list_2] * model.mip.weight[side_effect_list]).sum(dim=1))
+#             EPS = 1e-7
 
-            loss = torch.log(1 - P + EPS).sum() / regularization \
-                   + 0.5 * (pp_mask * (2 - pp_mask)).sum() \
-                   + (pd_mask * (2 - pd_mask)).sum()
+#             loss = torch.log(1 - P + EPS).sum() / regularization \
+#                    + 0.5 * (pp_mask * (2 - pp_mask)).sum() \
+#                    + (pd_mask * (2 - pd_mask)).sum()
 
-            loss.backward()
-            optimizer.step()
-            if i % 100 == 0:
-                print("Epoch:{:3d}, loss:{:0.2f}, prob:{:0.2f}, pp_link_sum:{:0.2f}, pd_link_sum:{:0.2f}".format(i, loss.tolist(), P.mean().tolist(), pp_mask.sum().tolist(), pd_mask.sum().tolist()))
+#             loss.backward()
+#             optimizer.step()
+#             if i % 100 == 0:
+#                 print("Epoch:{:3d}, loss:{:0.2f}, prob:{:0.2f}, pp_link_sum:{:0.2f}, pd_link_sum:{:0.2f}".format(i, loss.tolist(), P.mean().tolist(), pp_mask.sum().tolist(), pd_mask.sum().tolist()))
 
-            if tmp == (pp_mask.sum().tolist(), pd_mask.sum().tolist()):
-                break
-            else:
-                tmp = (pp_mask.sum().tolist(), pd_mask.sum().tolist())
+#             if tmp == (pp_mask.sum().tolist(), pd_mask.sum().tolist()):
+#                 break
+#             else:
+#                 tmp = (pp_mask.sum().tolist(), pd_mask.sum().tolist())
 
-        pre_mask.saturate()
+#         pre_mask.saturate()
 
-        pp_left_mask = (pp_mask > 0.2).detach().cpu().numpy()
-        tmp = (data.pp_index[0, :] > data.pp_index[1, :]).detach().cpu().numpy()
-        pp_left_mask = np.logical_and(pp_left_mask, tmp)
+#         pp_left_mask = (pp_mask > 0.2).detach().cpu().numpy()
+#         tmp = (data.pp_index[0, :] > data.pp_index[1, :]).detach().cpu().numpy()
+#         pp_left_mask = np.logical_and(pp_left_mask, tmp)
 
-        pd_left_mask = (pd_mask > 0.2).detach().cpu().numpy()
+#         pd_left_mask = (pd_mask > 0.2).detach().cpu().numpy()
 
-        pp_left_index = data.pp_index[:, pp_left_mask].cpu().numpy()
-        pd_left_index = data.pd_index[:, pd_left_mask].cpu().numpy()
+#         pp_left_index = data.pp_index[:, pp_left_mask].cpu().numpy()
+#         pd_left_index = data.pd_index[:, pd_left_mask].cpu().numpy()
 
-        pp_left_weight = pp_mask[pp_left_mask].detach().cpu().numpy()
-        pd_left_weight = pd_mask[pd_left_mask].detach().cpu().numpy()
+#         pp_left_weight = pp_mask[pp_left_mask].detach().cpu().numpy()
+#         pd_left_weight = pd_mask[pd_left_mask].detach().cpu().numpy()
 
-        return pp_left_index, pp_left_weight, pd_left_index, pd_left_weight
-
-
-class AprilePredictorPretrained(object):
-    """Make adverse polypharmacy reactions using a pre-trained predictor
-
-    Args:
-        data_path (str): the path of pre-trained Aprile-Predictor
-    """
-    def __init__(self, data_path):
-        # load data
-        with open(data_path, 'rb') as f:
-            self.data = pickle.load(f)
-
-        # load pretrained model
-        self.model, self.name = self.__pretrained_model_construction__()
-        self.model.load_state_dict(
-            torch.load(os.path.join(aprile_dir, self.name + '-model.pt')))
-
-    def __pretrained_model_construction__(self):
-        nhids_gcn = [64, 32, 32]
-        prot_out_dim = sum(nhids_gcn)
-        drug_dim = 128
-        pp = PP(self.data.n_prot, nhids_gcn)
-        pd = PD(prot_out_dim, drug_dim, self.data.n_drug)
-        mip = MultiInnerProductDecoder(drug_dim + pd.d_dim_feat, self.data.n_et)
-        name = 'poly-' + str(nhids_gcn) + '-' + str(drug_dim)
-
-        return AprilePredModel(pp, pd, mip).to('cpu'), name
-
-    def predict(self, drug1, drug2, side_effect, device='cpu', threshold=0.5):
-        data = self.data.to(device)
-        model = self.model.to(device)
-        model.eval()
-
-        pp_static_edge_weights = torch.ones((data.pp_index.shape[1])).to(device)
-        pd_static_edge_weights = torch.ones((data.pd_index.shape[1])).to(device)
-        z = model.pp(data.p_feat, data.pp_index, pp_static_edge_weights)
-        z = model.pd(z, data.pd_index, pd_static_edge_weights)
-        P = torch.sigmoid(
-            (z[drug1] * z[drug2] * model.mip.weight[side_effect]).sum(dim=1)
-        ).to('cpu')
-
-        index_filter = P > threshold
-        drug1 = torch.Tensor(drug1)[index_filter].tolist()
-        if not drug1:
-            raise ValueError("No Satisfied Edges."
-                             + "\n - Suggestion: reduce the threshold probability."
-                             + "Current probability threshold is {}. ".format(threshold)
-                             + "\n - Please use -h for help")
-
-        drug2 = torch.Tensor(drug2)[index_filter].tolist()
-        side_effect = torch.Tensor(side_effect)[index_filter].tolist()
-
-        return drug1, drug2, side_effect, P[index_filter].tolist()
-
-class Aprile(object):
-    """APRILE: explaning polypharmacy side effect using a pre-trained APRILE-Pred model
-
-    Args:
-        device (str): 'cpu' or 'cuda', for running APRILE-Explainer
-    """
-    def __init__(self, device='cpu'):
-        # load pretrained model
-        self.model, self.name = self.__pretrained_model_construction__()
-        self.model.load_state_dict(torch.load(os.path.join(aprile_dir, 'POSE-pred.pt')))
-
-        self.device = device
-        self.__GO_enrich__()
+#         return pp_left_index, pp_left_weight, pd_left_index, pd_left_weight
 
 
-    def __GO_enrich__(self):
-        """Gene Ontology (GO) enrichment analysis
-        """
-        go_file = "go-basic.obo"
-        if not os.path.exists(go_file):
-            download_go_basic_obo()
+# class AprilePredictorPretrained(object):
+#     """Make adverse polypharmacy reactions using a pre-trained predictor
+
+#     Args:
+#         data_path (str): the path of pre-trained Aprile-Predictor
+#     """
+#     def __init__(self, data_path):
+#         # load data
+#         with open(data_path, 'rb') as f:
+#             self.data = pickle.load(f)
+
+#         # load pretrained model
+#         self.model, self.name = self.__pretrained_model_construction__()
+#         self.model.load_state_dict(
+#             torch.load(os.path.join(aprile_dir, self.name + '-model.pt')))
+
+#     def __pretrained_model_construction__(self):
+#         nhids_gcn = [64, 32, 32]
+#         prot_out_dim = sum(nhids_gcn)
+#         drug_dim = 128
+#         pp = PP(self.data.n_prot, nhids_gcn)
+#         pd = PD(prot_out_dim, drug_dim, self.data.n_drug)
+#         mip = MultiInnerProductDecoder(drug_dim + pd.d_dim_feat, self.data.n_et)
+#         name = 'poly-' + str(nhids_gcn) + '-' + str(drug_dim)
+
+#         return AprilePredModel(pp, pd, mip).to('cpu'), name
+
+#     def predict(self, drug1, drug2, side_effect, device='cpu', threshold=0.5):
+#         data = self.data.to(device)
+#         model = self.model.to(device)
+#         model.eval()
+
+#         pp_static_edge_weights = torch.ones((data.pp_index.shape[1])).to(device)
+#         pd_static_edge_weights = torch.ones((data.pd_index.shape[1])).to(device)
+#         z = model.pp(data.p_feat, data.pp_index, pp_static_edge_weights)
+#         z = model.pd(z, data.pd_index, pd_static_edge_weights)
+#         P = torch.sigmoid(
+#             (z[drug1] * z[drug2] * model.mip.weight[side_effect]).sum(dim=1)
+#         ).to('cpu')
+
+#         index_filter = P > threshold
+#         drug1 = torch.Tensor(drug1)[index_filter].tolist()
+#         if not drug1:
+#             raise ValueError("No Satisfied Edges."
+#                              + "\n - Suggestion: reduce the threshold probability."
+#                              + "Current probability threshold is {}. ".format(threshold)
+#                              + "\n - Please use -h for help")
+
+#         drug2 = torch.Tensor(drug2)[index_filter].tolist()
+#         side_effect = torch.Tensor(side_effect)[index_filter].tolist()
+
+#         return drug1, drug2, side_effect, P[index_filter].tolist()
+
+# class Aprile(object):
+#     """APRILE: explaning polypharmacy side effect using a pre-trained APRILE-Pred model
+
+#     Args:
+#         device (str): 'cpu' or 'cuda', for running APRILE-Explainer
+#     """
+#     def __init__(self, device='cpu'):
+#         # load pretrained model
+#         self.model, self.name = self.__pretrained_model_construction__()
+#         self.model.load_state_dict(torch.load(os.path.join(aprile_dir, 'POSE-pred.pt')))
+
+#         self.device = device
+#         self.__GO_enrich__()
+
+
+#     def __GO_enrich__(self):
+#         """Gene Ontology (GO) enrichment analysis
+#         """
+#         go_file = "go-basic.obo"
+#         if not os.path.exists(go_file):
+#             download_go_basic_obo()
         
-        # Load gene ontologies
-        obodag = GODag("go-basic.obo")
+#         # Load gene ontologies
+#         obodag = GODag("go-basic.obo")
    
-        # Read NCBI's gene2go. Store annotations in a list of namedtuples
-        fin_gene2go = download_ncbi_associations()
-        objanno = Gene2GoReader(fin_gene2go, taxids=[9606])
-        # Get namespace2association where:
-        #    namespace is:
-        #        BP: biological_process
-        #        MF: molecular_function
-        #        CC: cellular_component
-        #    association is a dict:
-        #        key: NCBI GeneID
-        #        value: A set of GO IDs associated with that gene
-        ns2assoc = objanno.get_ns2assc()
+#         # Read NCBI's gene2go. Store annotations in a list of namedtuples
+#         fin_gene2go = download_ncbi_associations()
+#         objanno = Gene2GoReader(fin_gene2go, taxids=[9606])
+#         # Get namespace2association where:
+#         #    namespace is:
+#         #        BP: biological_process
+#         #        MF: molecular_function
+#         #        CC: cellular_component
+#         #    association is a dict:
+#         #        key: NCBI GeneID
+#         #        value: A set of GO IDs associated with that gene
+#         ns2assoc = objanno.get_ns2assc()
 
-        self.goeaobj = GOEnrichmentStudyNS(
-            GeneID2nt_hum.keys(),  # List of human protein-acoding genes
-            ns2assoc,  # geneID/GO associations
-            obodag,  # Ontologies
-            propagate_counts=False,
-            alpha=0.05,  # default significance cut-off
-            methods=['fdr_bh'])  # default multipletest correction method
+#         self.goeaobj = GOEnrichmentStudyNS(
+#             GeneID2nt_hum.keys(),  # List of human protein-acoding genes
+#             ns2assoc,  # geneID/GO associations
+#             obodag,  # Ontologies
+#             propagate_counts=False,
+#             alpha=0.05,  # default significance cut-off
+#             methods=['fdr_bh'])  # default multipletest correction method
 
-    def __pretrained_model_construction__(self):
-        """construct the default pretrained APRILE-pred model
+#     def __pretrained_model_construction__(self):
+#         """construct the default pretrained APRILE-pred model
 
-        Returns:
-            Model: initial the model structure
-            str: model structure summary
-        """
-        nhids_gcn = [64, 32, 32]
-        prot_out_dim = sum(nhids_gcn)
-        drug_dim = 128
-        pp = PP(gdata.n_prot, nhids_gcn)
-        pd = PD(prot_out_dim, drug_dim, gdata.n_drug)
-        mip = MultiInnerProductDecoder(drug_dim + pd.d_dim_feat, gdata.n_et)
-        name = 'poly-' + str(nhids_gcn) + '-' + str(drug_dim)
+#         Returns:
+#             Model: initial the model structure
+#             str: model structure summary
+#         """
+#         nhids_gcn = [64, 32, 32]
+#         prot_out_dim = sum(nhids_gcn)
+#         drug_dim = 128
+#         pp = PP(gdata.n_prot, nhids_gcn)
+#         pd = PD(prot_out_dim, drug_dim, gdata.n_drug)
+#         mip = MultiInnerProductDecoder(drug_dim + pd.d_dim_feat, gdata.n_et)
+#         name = 'poly-' + str(nhids_gcn) + '-' + str(drug_dim)
 
-        return AprilePredModel(pp, pd, mip).to('cpu'), name
+#         return AprilePredModel(pp, pd, mip).to('cpu'), name
 
-    def get_prediction_train(self, threshold=0.5):
-        """generate predictions for DDIs in the training set
+#     def get_prediction_train(self, threshold=0.5):
+#         """generate predictions for DDIs in the training set
 
-        Args:
-            threshold (float, optional): the threshold of probability scores for DDIs. Defaults to 0.5.
+#         Args:
+#             threshold (float, optional): the threshold of probability scores for DDIs. Defaults to 0.5.
 
-        Returns:
-            AprileQuery: prediction results
-        """
-        train_idx, train_et = remove_bidirection(gdata.train_idx, gdata.train_et)
+#         Returns:
+#             AprileQuery: prediction results
+#         """
+#         train_idx, train_et = remove_bidirection(gdata.train_idx, gdata.train_et)
 
-        return self.predict(train_idx[0].tolist(), train_idx[1].tolist(), train_et.tolist(), threshold=threshold)
+#         return self.predict(train_idx[0].tolist(), train_idx[1].tolist(), train_et.tolist(), threshold=threshold)
 
-    def get_prediction_test(self, threshold=0.5):
-        """generate predictions for DDIs in the testing set
+#     def get_prediction_test(self, threshold=0.5):
+#         """generate predictions for DDIs in the testing set
 
-        Args:
-            threshold (float, optional): the threshold of probability scores for DDIs. Defaults to 0.5.
+#         Args:
+#             threshold (float, optional): the threshold of probability scores for DDIs. Defaults to 0.5.
 
-        Returns:
-            AprileQuery: prediction results
-        """
-        test_idx, test_et = remove_bidirection(gdata.test_idx, gdata.test_et)
+#         Returns:
+#             AprileQuery: prediction results
+#         """
+#         test_idx, test_et = remove_bidirection(gdata.test_idx, gdata.test_et)
 
-        return self.predict(test_idx[0].tolist(), test_idx[1].tolist(), test_et.tolist(), threshold=threshold)
+#         return self.predict(test_idx[0].tolist(), test_idx[1].tolist(), test_et.tolist(), threshold=threshold)
 
-    def predict(self, drug1, drug2, side_effect, threshold=0.5):
-        """Predict the probability of DDIs
+#     def predict(self, drug1, drug2, side_effect, threshold=0.5):
+#         """Predict the probability of DDIs
 
-        Args:
-            drug1 (list): a list of drug
-            drug2 (list): a list of drug pairing `drug1`
-            side_effect (list): a list of side effect
-            threshold (float, optional): for probability. Defaults to 0.5.
+#         Args:
+#             drug1 (list): a list of drug
+#             drug2 (list): a list of drug pairing `drug1`
+#             side_effect (list): a list of side effect
+#             threshold (float, optional): for probability. Defaults to 0.5.
 
-        Raises:
-            ValueError: None of DDIs meets the threshold
+#         Raises:
+#             ValueError: None of DDIs meets the threshold
 
-        Returns:
-            AprileQuery: prediction results
-        """
-        device = self.device
-        data = gdata.to(device)
-        model = self.model.to(device)
-        model.eval()
+#         Returns:
+#             AprileQuery: prediction results
+#         """
+#         device = self.device
+#         data = gdata.to(device)
+#         model = self.model.to(device)
+#         model.eval()
 
-        pp_static_edge_weights = torch.ones((data.pp_index.shape[1])).to(device)
-        pd_static_edge_weights = torch.ones((data.pd_index.shape[1])).to(device)
-        z = model.pp(data.p_feat, data.pp_index, pp_static_edge_weights)
-        z0 = z.clone()
-        z1 = z.clone()
+#         pp_static_edge_weights = torch.ones((data.pp_index.shape[1])).to(device)
+#         pd_static_edge_weights = torch.ones((data.pd_index.shape[1])).to(device)
+#         z = model.pp(data.p_feat, data.pp_index, pp_static_edge_weights)
+#         z0 = z.clone()
+#         z1 = z.clone()
 
-        # prediction based on all info
-        z = model.pd(z, data.pd_index, pd_static_edge_weights)
-        P = torch.sigmoid(
-            (z[drug1] * z[drug2] * model.mip.weight[side_effect]).sum(dim=1)
-        ).to('cpu')
+#         # prediction based on all info
+#         z = model.pd(z, data.pd_index, pd_static_edge_weights)
+#         P = torch.sigmoid(
+#             (z[drug1] * z[drug2] * model.mip.weight[side_effect]).sum(dim=1)
+#         ).to('cpu')
 
-        index_filter = P > threshold
-        drug1 = torch.Tensor(drug1)[index_filter].numpy().astype(int).tolist()
-        if not drug1:
-            raise ValueError("No Satisfied Edges."
-                             + "\n - Suggestion: reduce the threshold probability."
-                             + "Current probability threshold is {}. ".format(threshold)
-                             + "\n - Please use -h for help")
+#         index_filter = P > threshold
+#         drug1 = torch.Tensor(drug1)[index_filter].numpy().astype(int).tolist()
+#         if not drug1:
+#             raise ValueError("No Satisfied Edges."
+#                              + "\n - Suggestion: reduce the threshold probability."
+#                              + "Current probability threshold is {}. ".format(threshold)
+#                              + "\n - Please use -h for help")
 
-        drug2 = torch.Tensor(drug2)[index_filter].numpy().astype(int).tolist()
-        side_effect = torch.Tensor(side_effect)[index_filter].numpy().astype(int).tolist()
+#         drug2 = torch.Tensor(drug2)[index_filter].numpy().astype(int).tolist()
+#         side_effect = torch.Tensor(side_effect)[index_filter].numpy().astype(int).tolist()
 
-        # prediction based on protein info and their interactions
-        z0.data[:, 64:] *= 0
-        z0 = model.pd(z0, data.pd_index, pd_static_edge_weights)
-        P0 = torch.sigmoid((z0[drug1] * z0[drug2] * model.mip.weight[side_effect]).sum(dim=1)).to("cpu")
-        ppiu_score = (P[index_filter] - P0)/P[index_filter]
+#         # prediction based on protein info and their interactions
+#         z0.data[:, 64:] *= 0
+#         z0 = model.pd(z0, data.pd_index, pd_static_edge_weights)
+#         P0 = torch.sigmoid((z0[drug1] * z0[drug2] * model.mip.weight[side_effect]).sum(dim=1)).to("cpu")
+#         ppiu_score = (P[index_filter] - P0)/P[index_filter]
 
-        # prediction based on drug info only
-        z1.data *= 0
-        z1 = model.pd(z1, data.pd_index, pd_static_edge_weights)
-        P1 = torch.sigmoid((z1[drug1] * z1[drug2] * model.mip.weight[side_effect]).sum(dim=1)).to("cpu")
-        piu_score = (P[index_filter] - P1)/P[index_filter]
+#         # prediction based on drug info only
+#         z1.data *= 0
+#         z1 = model.pd(z1, data.pd_index, pd_static_edge_weights)
+#         P1 = torch.sigmoid((z1[drug1] * z1[drug2] * model.mip.weight[side_effect]).sum(dim=1)).to("cpu")
+#         piu_score = (P[index_filter] - P1)/P[index_filter]
 
-        # return a query object
-        query = AprileQuery(drug1, drug2, side_effect)
-        query.set_pred_result(P[index_filter].tolist(), piu_score.tolist(), ppiu_score.tolist())
+#         # return a query object
+#         query = AprileQuery(drug1, drug2, side_effect)
+#         query.set_pred_result(P[index_filter].tolist(), piu_score.tolist(), ppiu_score.tolist())
 
-        return query 
+#         return query 
 
-    def explain_list(self, drug_list_1, drug_list_2, side_effect_list, regularization=2, if_auto_tuning=True, if_pred=True):
-        """generate explanation for a list of adverse drug events"""
-        if if_pred:
-            query = self.predict(drug_list_1, drug_list_2, side_effect_list)
-        else:    
-            query = AprileQuery(drug_list_1, drug_list_2, side_effect_list, regularization)
-        return self.explain_query(query, if_auto_tuning=if_auto_tuning, regularization=query.regularization)
+#     def explain_list(self, drug_list_1, drug_list_2, side_effect_list, regularization=2, if_auto_tuning=True, if_pred=True):
+#         """generate explanation for a list of adverse drug events"""
+#         if if_pred:
+#             query = self.predict(drug_list_1, drug_list_2, side_effect_list)
+#         else:    
+#             query = AprileQuery(drug_list_1, drug_list_2, side_effect_list, regularization)
+#         return self.explain_query(query, if_auto_tuning=if_auto_tuning, regularization=query.regularization)
 
-    def explain_query(self, query, if_auto_tuning=True, regularization=2):
-        """generate explanation for a AprileEQuery query"""
-        query.regularization = regularization
+#     def explain_query(self, query, if_auto_tuning=True, regularization=2):
+#         """generate explanation for a AprileEQuery query"""
+#         query.regularization = regularization
 
-        pp_left_index, pp_left_weight, pd_left_index, pd_left_weight = self.__explain(query)
+#         pp_left_index, pp_left_weight, pd_left_index, pd_left_weight = self.__explain(query)
 
-        if if_auto_tuning:
-            while pp_left_index.shape[1]==0:
-                if query.regularization < 0.0001:
-                    print("Warning: auto tuning forced to stop.")
-                    break
-                query.regularization /= 2
-                pp_left_index, pp_left_weight, pd_left_index, pd_left_weight = self.__explain(query)
+#         if if_auto_tuning:
+#             while pp_left_index.shape[1]==0:
+#                 if query.regularization < 0.0001:
+#                     print("Warning: auto tuning forced to stop.")
+#                     break
+#                 query.regularization /= 2
+#                 pp_left_index, pp_left_weight, pd_left_index, pd_left_weight = self.__explain(query)
 
-        query.set_exp_result(pp_left_index, pp_left_weight, pd_left_index, pd_left_weight)
+#         query.set_exp_result(pp_left_index, pp_left_weight, pd_left_index, pd_left_weight)
 
-        goea_results_sig = self.enrich_go(pp_left_index)
-        query.set_enrich_result(goea_results_sig)
+#         goea_results_sig = self.enrich_go(pp_left_index)
+#         query.set_enrich_result(goea_results_sig)
 
-        return query
+#         return query
 
-    def enrich_go(self, pp_left_index):
-        """gene ontology enrichment analysis"""
-        geneids_study = pp_left_index.flatten()  # geneid2symbol.keys()
-        geneids_study = [int(gdata.prot_idx_to_id[idx].replace('GeneID', '')) for idx in geneids_study]
+#     def enrich_go(self, pp_left_index):
+#         """gene ontology enrichment analysis"""
+#         geneids_study = pp_left_index.flatten()  # geneid2symbol.keys()
+#         geneids_study = [int(gdata.prot_idx_to_id[idx].replace('GeneID', '')) for idx in geneids_study]
 
-        goea_results_all = self.goeaobj.run_study(geneids_study)
-        goea_results_sig = [r for r in goea_results_all if r.p_fdr_bh < 0.05]
+#         goea_results_all = self.goeaobj.run_study(geneids_study)
+#         goea_results_sig = [r for r in goea_results_all if r.p_fdr_bh < 0.05]
         
-        return goea_results_sig
+#         return goea_results_sig
         
-    def __explain(self, query):
-        """the AprileExplainer module"""
-        data = gdata
-        model = self.model
-        device = self.device
+#     def __explain(self, query):
+#         """the AprileExplainer module"""
+#         data = gdata
+#         model = self.model
+#         device = self.device
         
-        drug_list_1, drug_list_2, side_effect_list, regularization = query.get_query()
+#         drug_list_1, drug_list_2, side_effect_list, regularization = query.get_query()
 
-        pre_mask = Pre_mask(data.pp_index.shape[1] // 2, data.pd_index.shape[1]).to(device)
-        data = data.to(device)
-        model = model.to(device)
+#         pre_mask = Pre_mask(data.pp_index.shape[1] // 2, data.pd_index.shape[1]).to(device)
+#         data = data.to(device)
+#         model = model.to(device)
 
-        for gcn in self.model.pp.conv_list:
-            gcn.cached = False
-        self.model.pd.conv.cached = False
-        self.model.eval()
+#         for gcn in self.model.pp.conv_list:
+#             gcn.cached = False
+#         self.model.pd.conv.cached = False
+#         self.model.eval()
 
-        optimizer = torch.optim.Adam(pre_mask.parameters(), lr=0.01)
-        fake_optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+#         optimizer = torch.optim.Adam(pre_mask.parameters(), lr=0.01)
+#         fake_optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-        tmp = 0.0
-        pre_mask.reset_parameters()
-        for i in range(9999):
-            model.train()
-            pre_mask.desaturate()
-            optimizer.zero_grad()
-            fake_optimizer.zero_grad()
+#         tmp = 0.0
+#         pre_mask.reset_parameters()
+#         for i in range(9999):
+#             model.train()
+#             pre_mask.desaturate()
+#             optimizer.zero_grad()
+#             fake_optimizer.zero_grad()
 
-            half_mask = torch.nn.Hardtanh(0, 1)(pre_mask.pp_weight)
-            pp_mask = torch.cat([half_mask, half_mask])
+#             half_mask = torch.nn.Hardtanh(0, 1)(pre_mask.pp_weight)
+#             pp_mask = torch.cat([half_mask, half_mask])
 
-            pd_mask = torch.nn.Hardtanh(0, 1)(pre_mask.pd_weight)
+#             pd_mask = torch.nn.Hardtanh(0, 1)(pre_mask.pd_weight)
 
-            z = model.pp(data.p_feat, data.pp_index, pp_mask)
+#             z = model.pp(data.p_feat, data.pp_index, pp_mask)
 
-            z = model.pd(z, data.pd_index, pd_mask)
+#             z = model.pd(z, data.pd_index, pd_mask)
 
-            P = torch.sigmoid((z[drug_list_1] * z[drug_list_2] * model.mip.weight[side_effect_list]).sum(dim=1))
-            EPS = 1e-7
+#             P = torch.sigmoid((z[drug_list_1] * z[drug_list_2] * model.mip.weight[side_effect_list]).sum(dim=1))
+#             EPS = 1e-7
 
-            loss = torch.log(1 - P + EPS).sum() / regularization \
-                   + 0.5 * (pp_mask * (2 - pp_mask)).sum() \
-                   + (pd_mask * (2 - pd_mask)).sum()
+#             loss = torch.log(1 - P + EPS).sum() / regularization \
+#                    + 0.5 * (pp_mask * (2 - pp_mask)).sum() \
+#                    + (pd_mask * (2 - pd_mask)).sum()
 
-            loss.backward()
-            optimizer.step()
+#             loss.backward()
+#             optimizer.step()
             
-            if i % 100 == 0:
-                print("Epoch:{:3d}, loss:{:0.2f}, prob:{:0.2f}, pp_link_sum:{:0.2f}, pd_link_sum:{:0.2f}".format(i, loss.tolist(), P.mean().tolist(), pp_mask.sum().tolist(), pd_mask.sum().tolist()))
+#             if i % 100 == 0:
+#                 print("Epoch:{:3d}, loss:{:0.2f}, prob:{:0.2f}, pp_link_sum:{:0.2f}, pd_link_sum:{:0.2f}".format(i, loss.tolist(), P.mean().tolist(), pp_mask.sum().tolist(), pd_mask.sum().tolist()))
 
-            # until no weight need to be updated --> no sum of weights changes
-            if tmp == (pp_mask.sum().tolist(), pd_mask.sum().tolist()):
-                break
-            else:
-                tmp = (pp_mask.sum().tolist(), pd_mask.sum().tolist())
+#             # until no weight need to be updated --> no sum of weights changes
+#             if tmp == (pp_mask.sum().tolist(), pd_mask.sum().tolist()):
+#                 break
+#             else:
+#                 tmp = (pp_mask.sum().tolist(), pd_mask.sum().tolist())
 
 
-        pre_mask.saturate()
+#         pre_mask.saturate()
 
-        pp_left_mask = (pp_mask > 0.2).detach().cpu().numpy()
-        tmp = (data.pp_index[0, :] > data.pp_index[1, :]).detach().cpu().numpy()
-        pp_left_mask = np.logical_and(pp_left_mask, tmp)
+#         pp_left_mask = (pp_mask > 0.2).detach().cpu().numpy()
+#         tmp = (data.pp_index[0, :] > data.pp_index[1, :]).detach().cpu().numpy()
+#         pp_left_mask = np.logical_and(pp_left_mask, tmp)
 
-        pd_left_mask = (pd_mask > 0.2).detach().cpu().numpy()
+#         pd_left_mask = (pd_mask > 0.2).detach().cpu().numpy()
 
-        pp_left_index = data.pp_index[:, pp_left_mask].cpu().numpy()
-        pd_left_index = data.pd_index[:, pd_left_mask].cpu().numpy()
+#         pp_left_index = data.pp_index[:, pp_left_mask].cpu().numpy()
+#         pd_left_index = data.pd_index[:, pd_left_mask].cpu().numpy()
 
-        pp_left_weight = pp_mask[pp_left_mask].detach().cpu().numpy()
-        pd_left_weight = pd_mask[pd_left_mask].detach().cpu().numpy()
+#         pp_left_weight = pp_mask[pp_left_mask].detach().cpu().numpy()
+#         pd_left_weight = pd_mask[pd_left_mask].detach().cpu().numpy()
 
-        return pp_left_index, pp_left_weight, pd_left_index, pd_left_weight
+#         return pp_left_index, pp_left_weight, pd_left_index, pd_left_weight
 
      
-class AprileQuery(object):
-    """A class for quering APRILE's prediction and expalanition results
+# class AprileQuery(object):
+#     """A class for quering APRILE's prediction and expalanition results
 
-    Args:
-        drug1 (list): a list of drug
-        drug2 (list): a list of drug pairing with `drug1`
-        side_effect (list): a list of side effect caused by drug pairs
-        regularization (int, optional): the coefficient for control the size of explanation. Defaults to 2.
-    """
-    def __init__(self, drug1, drug2, side_effect, regularization=2):
-        self.drug1 = drug1
-        self.drug2 = drug2
-        self.side_effect = side_effect
-        self.regularization = regularization
-        self.if_explain = False
-        self.if_enrich = False
-        self.if_pred = False
+#     Args:
+#         drug1 (list): a list of drug
+#         drug2 (list): a list of drug pairing with `drug1`
+#         side_effect (list): a list of side effect caused by drug pairs
+#         regularization (int, optional): the coefficient for control the size of explanation. Defaults to 2.
+#     """
+#     def __init__(self, drug1, drug2, side_effect, regularization=2):
+#         self.drug1 = drug1
+#         self.drug2 = drug2
+#         self.side_effect = side_effect
+#         self.regularization = regularization
+#         self.if_explain = False
+#         self.if_enrich = False
+#         self.if_pred = False
 
-    def __repr__(self):
-        return str(self.__class__) + ": \n" + str(self.__dict__)
+#     def __repr__(self):
+#         return str(self.__class__) + ": \n" + str(self.__dict__)
         
-    def __str__(self):
-        return str(self.__class__) + ": " + str(self.__dict__)
+#     def __str__(self):
+#         return str(self.__class__) + ": " + str(self.__dict__)
 
-    def set_exp_result(self, pp_index, pp_weight, pd_index, pd_weight):
-        if pd_index.shape[1]:
-            self.pp_index = pp_index
-            self.pp_weight = pp_weight
-            self.pd_index = pd_index
-            self.pd_weight = pd_weight
-            self.if_explain = True
+#     def set_exp_result(self, pp_index, pp_weight, pd_index, pd_weight):
+#         if pd_index.shape[1]:
+#             self.pp_index = pp_index
+#             self.pp_weight = pp_weight
+#             self.pd_index = pd_index
+#             self.pd_weight = pd_weight
+#             self.if_explain = True
 
-            print('pp_edge: {}, pd_edge:{}\n'.format(pp_index.shape[1], pd_index.shape[1]))
+#             print('pp_edge: {}, pd_edge:{}\n'.format(pp_index.shape[1], pd_index.shape[1]))
 
-    def set_enrich_result(self, goea_results_sig):
-        if len(goea_results_sig):
-            self.if_enrich = True
+#     def set_enrich_result(self, goea_results_sig):
+#         if len(goea_results_sig):
+#             self.if_enrich = True
 
-            keys = ['name', 'namespace', 'id']
-            df_go1 = pandas.DataFrame([{k: g.goterm.__dict__.get(k) for k in keys} for g in goea_results_sig])
-            df_p = pandas.DataFrame([{'p_fdr_bh': g.__dict__['p_fdr_bh']} for g in goea_results_sig])
-            df_go = df_go1.merge(df_p, left_index=True, right_index=True)
+#             keys = ['name', 'namespace', 'id']
+#             df_go1 = pandas.DataFrame([{k: g.goterm.__dict__.get(k) for k in keys} for g in goea_results_sig])
+#             df_p = pandas.DataFrame([{'p_fdr_bh': g.__dict__['p_fdr_bh']} for g in goea_results_sig])
+#             df_go = df_go1.merge(df_p, left_index=True, right_index=True)
 
-            go_genes = pandas.DataFrame([{'id': g.goterm.id, 'gene': s, 'symbol': gdata.geneid2symbol[s]} for g in goea_results_sig for s in g.study_items])
+#             go_genes = pandas.DataFrame([{'id': g.goterm.id, 'gene': s, 'symbol': gdata.geneid2symbol[s]} for g in goea_results_sig for s in g.study_items])
         
-            self.GOEnrich_table = df_go.merge(go_genes, on='id')
+#             self.GOEnrich_table = df_go.merge(go_genes, on='id')
 
-    def set_pred_result(self, probability, piu_score, ppiu_score):
-        self.probability = probability
-        self.piu_score = piu_score
-        self.ppiu_score = ppiu_score
-        self.if_pred = True
+#     def set_pred_result(self, probability, piu_score, ppiu_score):
+#         self.probability = probability
+#         self.piu_score = piu_score
+#         self.ppiu_score = ppiu_score
+#         self.if_pred = True
 
-    def get_query(self):
-        """get query details
-        """
-        return self.drug1, self.drug2, self.side_effect, self.regularization
+#     def get_query(self):
+#         """get query details
+#         """
+#         return self.drug1, self.drug2, self.side_effect, self.regularization
         
-    def get_pred_table(self):
-        """generate the prediction results
+#     def get_pred_table(self):
+#         """generate the prediction results
 
-        Returns:
-            pandas.DataFrame: DDIs, probability, PIU, PPIU and additional mappings
-        """
-        keys = ['drug_1', 'CID_1', 'name_1', 'drug_2', 'CID_2', 'name_2', 'side_effect', 'side_effect_name', 'prob', 'piu', 'ppiu']
-        cid1 = [int(gdata.drug_idx_to_id[c][3:]) for c in self.drug1]
-        cid2 = [int(gdata.drug_idx_to_id[c][3:]) for c in self.drug2]
-        name1 = [gdata.drug_idx_to_name[c] for c in self.drug1]
-        name2 = [gdata.drug_idx_to_name[c] for c in self.drug2]
-        se_name = [gdata.side_effect_idx_to_name[c] for c in self.side_effect]
+#         Returns:
+#             pandas.DataFrame: DDIs, probability, PIU, PPIU and additional mappings
+#         """
+#         keys = ['drug_1', 'CID_1', 'name_1', 'drug_2', 'CID_2', 'name_2', 'side_effect', 'side_effect_name', 'prob', 'piu', 'ppiu']
+#         cid1 = [int(gdata.drug_idx_to_id[c][3:]) for c in self.drug1]
+#         cid2 = [int(gdata.drug_idx_to_id[c][3:]) for c in self.drug2]
+#         name1 = [gdata.drug_idx_to_name[c] for c in self.drug1]
+#         name2 = [gdata.drug_idx_to_name[c] for c in self.drug2]
+#         se_name = [gdata.side_effect_idx_to_name[c] for c in self.side_effect]
 
-        if not self.if_pred:
-            print('WARING: The query is not predicted')
-            keys = keys[:8]
-            df = [self.drug1, cid1, name1, self.drug2, cid2, name2, self.side_effect, se_name]
-        else:
-            df = [self.drug1, cid1, name1, self.drug2, cid2, name2, self.side_effect, se_name, self.probability, self.piu_score, self.ppiu_score]
+#         if not self.if_pred:
+#             print('WARING: The query is not predicted')
+#             keys = keys[:8]
+#             df = [self.drug1, cid1, name1, self.drug2, cid2, name2, self.side_effect, se_name]
+#         else:
+#             df = [self.drug1, cid1, name1, self.drug2, cid2, name2, self.side_effect, se_name, self.probability, self.piu_score, self.ppiu_score]
 
-        df = pandas.DataFrame(df).T
-        df.columns = keys
+#         df = pandas.DataFrame(df).T
+#         df.columns = keys
 
-        return df
+#         return df
 
-    def get_GOEnrich_table(self):
-        """get Gene Ontology analysis results
+#     def get_GOEnrich_table(self):
+#         """get Gene Ontology analysis results
 
-        Returns:
-            pandas.DataFrame: significant GOs, genes and additional mappings
-        """
-        if not self.if_enrich:
-            print('ERROR: There is no enriched GO item')
-            return
+#         Returns:
+#             pandas.DataFrame: significant GOs, genes and additional mappings
+#         """
+#         if not self.if_enrich:
+#             print('ERROR: There is no enriched GO item')
+#             return
 
-        return self.GOEnrich_table
+#         return self.GOEnrich_table
     
-    def get_subgraph(self, if_show=True, save_path=None):
-        """Visualize explanation
+#     def get_subgraph(self, if_show=True, save_path=None):
+#         """Visualize explanation
 
-        Args:
-            if_show (bool, optional): if print the figure. Defaults to True.
-            save_path (str, optional): the path to save figure. Defaults to None.
+#         Args:
+#             if_show (bool, optional): if print the figure. Defaults to True.
+#             save_path (str, optional): the path to save figure. Defaults to None.
 
-        Returns:
-            matplotlib.pyplot.figure(): DDIs and their mechanisms
-        """
-        if not self.if_explain:
-            print('ERROR: The query is not explained')
-            return
+#         Returns:
+#             matplotlib.pyplot.figure(): DDIs and their mechanisms
+#         """
+#         if not self.if_explain:
+#             print('ERROR: The query is not explained')
+#             return
 
-        _, self.fig = visualize_graph(self.pp_index, self.pp_weight, self.pd_index, self.pd_weight, gdata.pp_index, self.drug1, self.drug2, save_path, size=(30, 30), protein_name_dict=gdata.prot_graph_dict, drug_name_dict=gdata.drug_graph_dict)
+#         _, self.fig = visualize_graph(self.pp_index, self.pp_weight, self.pd_index, self.pd_weight, gdata.pp_index, self.drug1, self.drug2, save_path, size=(30, 30), protein_name_dict=gdata.prot_graph_dict, drug_name_dict=gdata.drug_graph_dict)
 
-        if if_show:
-            self.fig.show()
+#         if if_show:
+#             self.fig.show()
         
-        return self.fig
+#         return self.fig
 
-    @staticmethod
-    def load_from_pkl(file):
-        """load a query from a pickle file
+#     @staticmethod
+#     def load_from_pkl(file):
+#         """load a query from a pickle file
 
-        Args:
-            file (str): the file's path
+#         Args:
+#             file (str): the file's path
 
-        Returns:
-            AprileQuery: 
-        """
-        with open(file, 'rb') as f:
-            return pickle.load(f)
+#         Returns:
+#             AprileQuery: 
+#         """
+#         with open(file, 'rb') as f:
+#             return pickle.load(f)
 
-    def to_pickle(self, file):
-        """save the current query to a pickle file
+#     def to_pickle(self, file):
+#         """save the current query to a pickle file
 
-        Args:
-            file (str): the path to save the object
-        """
-        with open(file, 'wb') as f:
-            pickle.dump(self, f)
+#         Args:
+#             file (str): the path to save the object
+#         """
+#         with open(file, 'wb') as f:
+#             pickle.dump(self, f)
