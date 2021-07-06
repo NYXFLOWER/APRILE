@@ -30,14 +30,14 @@ aprile_dir = os.path.dirname(os.path.abspath(__file__))
 # with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
 #     gdata = pickle.load(f)
 
-with open(os.path.join(aprile_dir, 'data_dir.pkl'), 'rb') as f:
-    data = pickle.load(f)
+# with open(os.path.join(aprile_dir, 'data_dir.pkl'), 'rb') as f:
+#     data = pickle.load(f)
 
-class DataT(object):
-    pass
+# class DataT(object):
+#     pass
 
-gdata = DataT()
-gdata.__dict__ = data
+# gdata = DataT()
+# gdata.__dict__ = data
 
 class MultiInnerProductDecoder(torch.nn.Module):
     """DistMult tensor factorization for side effect prediction, 
