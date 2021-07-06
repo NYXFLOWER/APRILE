@@ -19,8 +19,8 @@ from goatools.anno.genetogo_reader import Gene2GoReader
 from goatools.goea.go_enrichment_ns import GOEnrichmentStudyNS
 from goatools.godag_plot import plot_gos, plot_results, plot_goid2goobj
 
-from aprile.utils import remove_bidirection, visualize_graph
-# from aprile.pure_query import *
+from aprile.utils import remove_bidirection
+from aprile.pure_query import *
 
 torch.manual_seed(1111)
 np.random.seed(1111)
@@ -31,8 +31,8 @@ aprile_dir = os.path.dirname(os.path.abspath(__file__))
 # with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
 #     gdata = pickle.load(f)
 
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data_dict.pkl'), 'rb') as f:
-    data = pickle.load(f)
+# with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data_dict.pkl'), 'rb') as f:
+#     data = pickle.load(f)
 
 # class DataT(object):
 #     pass
