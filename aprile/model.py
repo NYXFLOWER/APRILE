@@ -65,187 +65,187 @@ class MultiInnerProductDecoder(torch.nn.Module):
         self.weight.data.normal_(std=1/np.sqrt(self.in_dim))
 
 
-# class AprileGCN(MessagePassing):
-#     """Graph convolutional neural network [1] with edge weights/masks.
-#         [1]: `"Semi-supervised Classification with Graph Convolutional Networks" <https://arxiv.org/abs/1609.02907>` (ICLR 2017) paper.
+class AprileGCN(MessagePassing):
+    """Graph convolutional neural network [1] with edge weights/masks.
+        [1]: `"Semi-supervised Classification with Graph Convolutional Networks" <https://arxiv.org/abs/1609.02907>` (ICLR 2017) paper.
 
-#     Note: 
-#         For more information please see Pytorch Geomertic's `nn.GCNConv <https://pytorch-geometric.readthedocs.io/en/latest/modules/nn.html#module-torch_geometric.nn.conv.message_passing>`_ docs.
+    Note: 
+        For more information please see Pytorch Geomertic's `nn.GCNConv <https://pytorch-geometric.readthedocs.io/en/latest/modules/nn.html#module-torch_geometric.nn.conv.message_passing>`_ docs.
 
-#     Args:
-#         in_channels (int): size of each inputs samples
-#         out_channels ([type]): size of each outputs samples
-#         improved (bool, optional): Defaults to False.
-#         cached (bool, optional): Defaults to False.
-#         bias (bool, optional): Defaults to True.
-#     """
-#     def __init__(self, in_channels, out_channels, improved=False, cached=False, bias=True, **kwargs):
-#         super(AprileGCN, self).__init__(aggr='add', **kwargs)
+    Args:
+        in_channels (int): size of each inputs samples
+        out_channels ([type]): size of each outputs samples
+        improved (bool, optional): Defaults to False.
+        cached (bool, optional): Defaults to False.
+        bias (bool, optional): Defaults to True.
+    """
+    def __init__(self, in_channels, out_channels, improved=False, cached=False, bias=True, **kwargs):
+        super(AprileGCN, self).__init__(aggr='add', **kwargs)
 
-#         self.in_channels = in_channels
-#         self.out_channels = out_channels
-#         self.improved = improved
-#         self.cached = cached
-#         self.cached_result = None
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.improved = improved
+        self.cached = cached
+        self.cached_result = None
 
-#         self.weight = Parameter(torch.Tensor(in_channels, out_channels))
+        self.weight = Parameter(torch.Tensor(in_channels, out_channels))
 
-#         if bias:
-#             self.bias = Parameter(torch.Tensor(out_channels))
-#         else:
-#             self.register_parameter('bias', None)
+        if bias:
+            self.bias = Parameter(torch.Tensor(out_channels))
+        else:
+            self.register_parameter('bias', None)
 
-#         self.reset_parameters()
+        self.reset_parameters()
 
-#     def reset_parameters(self):
-#         stdv = np.sqrt(6.0 / (self.weight.size(-2) + self.weight.size(-1)))
-#         self.weight.data.uniform_(-stdv, stdv)
+    def reset_parameters(self):
+        stdv = np.sqrt(6.0 / (self.weight.size(-2) + self.weight.size(-1)))
+        self.weight.data.uniform_(-stdv, stdv)
 
-#         if self.bias is not None:
-#             self.bias.data.fill_(0)
+        if self.bias is not None:
+            self.bias.data.fill_(0)
 
-#         self.cached_result = None
-#         self.cached_num_edges = None
+        self.cached_result = None
+        self.cached_num_edges = None
 
-#     @staticmethod
-#     def norm(edge_index, num_nodes, edge_weight, improved=False, dtype=None):
-#         """Add self-loops and apply symmetric normalization
-#         """
-#         if edge_weight is None:
-#             edge_weight = torch.ones((edge_index.size(1), ),
-#                                      dtype=dtype,
-#                                      device=edge_index.device)
+    @staticmethod
+    def norm(edge_index, num_nodes, edge_weight, improved=False, dtype=None):
+        """Add self-loops and apply symmetric normalization
+        """
+        if edge_weight is None:
+            edge_weight = torch.ones((edge_index.size(1), ),
+                                     dtype=dtype,
+                                     device=edge_index.device)
 
-#         fill_value = 1 if not improved else 2
-#         edge_index, edge_weight = add_remaining_self_loops(
-#             edge_index, edge_weight, fill_value, num_nodes)
+        fill_value = 1 if not improved else 2
+        edge_index, edge_weight = add_remaining_self_loops(
+            edge_index, edge_weight, fill_value, num_nodes)
 
-#         row, col = edge_index
-#         deg = scatter_add(edge_weight, col, dim=0, dim_size=num_nodes)
-#         deg_inv_sqrt = deg.pow(-0.5)
-#         deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+        row, col = edge_index
+        deg = scatter_add(edge_weight, col, dim=0, dim_size=num_nodes)
+        deg_inv_sqrt = deg.pow(-0.5)
+        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
 
-#         return edge_index, deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
+        return edge_index, deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
 
-#     def forward(self, x, edge_index, edge_weight=None):
-#         x = torch.matmul(x, self.weight)
+    def forward(self, x, edge_index, edge_weight=None):
+        x = torch.matmul(x, self.weight)
 
-#         if self.cached and self.cached_result is not None:
-#             if edge_index.size(1) != self.cached_num_edges:
-#                 raise RuntimeError(
-#                     'Cached {} number of edges, but found {}'.format(
-#                         self.cached_num_edges, edge_index.size(1)))
+        if self.cached and self.cached_result is not None:
+            if edge_index.size(1) != self.cached_num_edges:
+                raise RuntimeError(
+                    'Cached {} number of edges, but found {}'.format(
+                        self.cached_num_edges, edge_index.size(1)))
 
-#         if not self.cached or self.cached_result is None:
-#             self.cached_num_edges = edge_index.size(1)
-#             edge_index, norm = self.norm(edge_index, x.size(0), edge_weight,
-#                                          self.improved, x.dtype)
-#             self.cached_result = edge_index, norm
+        if not self.cached or self.cached_result is None:
+            self.cached_num_edges = edge_index.size(1)
+            edge_index, norm = self.norm(edge_index, x.size(0), edge_weight,
+                                         self.improved, x.dtype)
+            self.cached_result = edge_index, norm
 
-#         edge_index, norm = self.cached_result
+        edge_index, norm = self.cached_result
 
-#         return self.propagate(edge_index, x=x, norm=norm)
+        return self.propagate(edge_index, x=x, norm=norm)
 
-#     def message(self, x_j, norm):
-#         return norm.view(-1, 1) * x_j
+    def message(self, x_j, norm):
+        return norm.view(-1, 1) * x_j
 
-#     def update(self, aggr_out):
-#         if self.bias is not None:
-#             aggr_out = aggr_out + self.bias
-#         return aggr_out
+    def update(self, aggr_out):
+        if self.bias is not None:
+            aggr_out = aggr_out + self.bias
+        return aggr_out
 
-#     def __repr__(self):
-#         return '{}({}, {})'.format(self.__class__.__name__, self.in_channels,
-#                                    self.out_channels)
-
-
-# class PP(torch.nn.Module):
-#     """Protein representation module
-
-#     Args:
-#         in_dim (int): the size of each input samples
-#         nhid_list (list): the size of each intermediary embeddings and outputs
-#     """
-
-#     def __init__(self, in_dim, nhid_list):
-#         super(PP, self).__init__()
-#         self.out_dim = nhid_list[-1]
-
-#         self.embedding = torch.nn.Parameter(torch.Tensor(in_dim, nhid_list[0]))
-
-#         self.conv_list = torch.nn.ModuleList(
-#             [AprileGCN(nhid_list[i], nhid_list[i + 1], cached=True) for i in range(len(nhid_list) - 1)]
-#         )
-
-#         self.embedding.requires_grad = False
-#         self.reset_parameters()
-
-#     def reset_parameters(self):
-#         self.embedding.data.normal_()
-
-#     def forward(self, x, pp_edge_index, edge_weight):
-#         tmp = []
-
-#         x = self.embedding
-#         tmp.append(x)
-#         for net in self.conv_list[:-1]:
-#             x = net(x, pp_edge_index, edge_weight)
-#             x = F.relu(x, inplace=True)
-#             tmp.append(x)
-
-#         x = self.conv_list[-1](x, pp_edge_index, edge_weight)
-#         x = F.relu(x, inplace=True)
-#         tmp.append(x)
-
-#         return torch.cat(tmp, dim=1)
+    def __repr__(self):
+        return '{}({}, {})'.format(self.__class__.__name__, self.in_channels,
+                                   self.out_channels)
 
 
-# class PD(torch.nn.Module):
-#     """Drug representation module
+class PP(torch.nn.Module):
+    """Protein representation module
 
-#     Args:
-#         protein_dim (int): the size of protein embeddings
-#         d_dim_prot (int): the size of drug embeddings for the related pharmacogenomic information
-#         n_drug (int): the number of drugs
-#         d_dim_feat (int, optional): the size of drug feature embeddings. Defaults to 32.
-#     """
+    Args:
+        in_dim (int): the size of each input samples
+        nhid_list (list): the size of each intermediary embeddings and outputs
+    """
 
-#     def __init__(self, protein_dim, d_dim_prot, n_drug, d_dim_feat=32):
-#         super(PD, self).__init__()
-#         self.p_dim = protein_dim
-#         self.d_dim_prot = d_dim_prot
-#         self.d_dim_feat = d_dim_feat
-#         self.n_drug = n_drug
-#         self.d_feat = torch.nn.Parameter(torch.Tensor(n_drug, d_dim_feat))
+    def __init__(self, in_dim, nhid_list):
+        super(PP, self).__init__()
+        self.out_dim = nhid_list[-1]
 
-#         self.d_feat.requires_grad = False
+        self.embedding = torch.nn.Parameter(torch.Tensor(in_dim, nhid_list[0]))
 
-#         self.conv = AprileGCN(protein_dim, d_dim_prot, cached=True)
-#         self.reset_parameters()
+        self.conv_list = torch.nn.ModuleList(
+            [AprileGCN(nhid_list[i], nhid_list[i + 1], cached=True) for i in range(len(nhid_list) - 1)]
+        )
 
-#     def reset_parameters(self):
-#         self.d_feat.data.normal_()
+        self.embedding.requires_grad = False
+        self.reset_parameters()
 
-#     def forward(self, x, pd_edge_index, edge_weight=None):
-#         n_prot = x.shape[0]
-#         tmp = pd_edge_index + 0
-#         tmp[1, :] += n_prot
+    def reset_parameters(self):
+        self.embedding.data.normal_()
 
-#         x = torch.cat([x, torch.zeros((self.n_drug, x.shape[1])).to(x.device)], dim=0)
-#         x = self.conv(x, tmp, edge_weight)[n_prot:, :]
-#         x = F.relu(x)
-#         x = torch.cat([x, torch.abs(self.d_feat)], dim=1)
-#         return x
+    def forward(self, x, pp_edge_index, edge_weight):
+        tmp = []
+
+        x = self.embedding
+        tmp.append(x)
+        for net in self.conv_list[:-1]:
+            x = net(x, pp_edge_index, edge_weight)
+            x = F.relu(x, inplace=True)
+            tmp.append(x)
+
+        x = self.conv_list[-1](x, pp_edge_index, edge_weight)
+        x = F.relu(x, inplace=True)
+        tmp.append(x)
+
+        return torch.cat(tmp, dim=1)
 
 
-# class AprilePredModel(torch.nn.Module):
-#     """Aprile-Pred model structure
-#     """
-#     def __init__(self, pp, pd, mip):
-#         super(AprilePredModel, self).__init__()
-#         self.pp = pp
-#         self.pd = pd
-#         self.mip = mip
+class PD(torch.nn.Module):
+    """Drug representation module
+
+    Args:
+        protein_dim (int): the size of protein embeddings
+        d_dim_prot (int): the size of drug embeddings for the related pharmacogenomic information
+        n_drug (int): the number of drugs
+        d_dim_feat (int, optional): the size of drug feature embeddings. Defaults to 32.
+    """
+
+    def __init__(self, protein_dim, d_dim_prot, n_drug, d_dim_feat=32):
+        super(PD, self).__init__()
+        self.p_dim = protein_dim
+        self.d_dim_prot = d_dim_prot
+        self.d_dim_feat = d_dim_feat
+        self.n_drug = n_drug
+        self.d_feat = torch.nn.Parameter(torch.Tensor(n_drug, d_dim_feat))
+
+        self.d_feat.requires_grad = False
+
+        self.conv = AprileGCN(protein_dim, d_dim_prot, cached=True)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.d_feat.data.normal_()
+
+    def forward(self, x, pd_edge_index, edge_weight=None):
+        n_prot = x.shape[0]
+        tmp = pd_edge_index + 0
+        tmp[1, :] += n_prot
+
+        x = torch.cat([x, torch.zeros((self.n_drug, x.shape[1])).to(x.device)], dim=0)
+        x = self.conv(x, tmp, edge_weight)[n_prot:, :]
+        x = F.relu(x)
+        x = torch.cat([x, torch.abs(self.d_feat)], dim=1)
+        return x
+
+
+class AprilePredModel(torch.nn.Module):
+    """Aprile-Pred model structure
+    """
+    def __init__(self, pp, pd, mip):
+        super(AprilePredModel, self).__init__()
+        self.pp = pp
+        self.pd = pd
+        self.mip = mip
 
 
 # class Pre_mask(torch.nn.Module):
