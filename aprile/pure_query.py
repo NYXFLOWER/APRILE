@@ -5,25 +5,35 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from itertools import combinations
 
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data_dict.pkl'), 'rb') as f:
-    data = pickle.load(f)
+# with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data_dict.pkl'), 'rb') as f:
+#     data = pickle.load(f)
 
-class DataTmp(object):
-    pass
+# class DataTmp(object):
+#     pass
 
-gdata = DataTmp()
-gdata.__dict__ = data
+# gdata = DataTmp()
+# gdata.__dict__ = data
 
-class PoseQueryTmp(object):
+class PureAprileQuery(object):
     @staticmethod
     def load_from_pkl(file):
         with open(file, 'rb') as f:
             return pickle.load(f)
 
-    def __init__(self, drug1, drug2, side_effect, regularization=2):
+    def __init__(self, drug1, drug2, side_effect, gdata, regularization=2):
+        """Simple AprileQuery I/O
+
+        Args:
+            drug1 ([type]): [description]
+            drug2 ([type]): [description]
+            side_effect ([type]): [description]
+            gdata ([type]): [description]
+            regularization (int, optional): [description]. Defaults to 2.
+        """
         self.drug1 = drug1
         self.drug2 = drug2
         self.side_effect = side_effect
+        self.gdata = gdata
         self.regularization = regularization
         self.if_explain = False
         self.if_enrich = False
@@ -54,7 +64,7 @@ class PoseQueryTmp(object):
             df_p = pandas.DataFrame([{'p_fdr_bh': g.__dict__['p_fdr_bh']} for g in goea_results_sig])
             df_go = df_go1.merge(df_p, left_index=True, right_index=True)
 
-            go_genes = pandas.DataFrame([{'id': g.goterm.id, 'gene': s, 'symbol': gdata.geneid2symbol[s]} for g in goea_results_sig for s in g.study_items])
+            go_genes = pandas.DataFrame([{'id': g.goterm.id, 'gene': s, 'symbol': self.gdata.geneid2symbol[s]} for g in goea_results_sig for s in g.study_items])
         
             self.GOEnrich_table = df_go.merge(go_genes, on='id')
 
@@ -69,11 +79,11 @@ class PoseQueryTmp(object):
         
     def get_pred_table(self):
         keys = ['drug_1', 'CID_1', 'name_1', 'drug_2', 'CID_2', 'name_2', 'side_effect', 'side_effect_name', 'prob', 'piu', 'ppiu']
-        cid1 = [int(gdata.drug_idx_to_id[c][3:]) for c in self.drug1]
-        cid2 = [int(gdata.drug_idx_to_id[c][3:]) for c in self.drug2]
-        name1 = [gdata.drug_idx_to_name[c] for c in self.drug1]
-        name2 = [gdata.drug_idx_to_name[c] for c in self.drug2]
-        se_name = [gdata.side_effect_idx_to_name[c] for c in self.side_effect]
+        cid1 = [int(self.gdata.drug_idx_to_id[c][3:]) for c in self.drug1]
+        cid2 = [int(self.gdata.drug_idx_to_id[c][3:]) for c in self.drug2]
+        name1 = [self.gdata.drug_idx_to_name[c] for c in self.drug1]
+        name2 = [self.gdata.drug_idx_to_name[c] for c in self.drug2]
+        se_name = [self.gdata.side_effect_idx_to_name[c] for c in self.side_effect]
 
         if not self.if_pred:
             print('WARING: The query is not predicted')
@@ -103,7 +113,7 @@ class PoseQueryTmp(object):
             print('ERROR: The query is not explained')
             return
 
-        G, self.fig = visualize_graph(self.pp_index, self.pp_weight, self.pd_index, self.pd_weight, gdata.pp_index, self.drug1, self.drug2, save_path, size=(30, 30), protein_name_dict=gdata.prot_graph_dict, drug_name_dict=gdata.drug_graph_dict)
+        G, self.fig = visualize_graph(self.pp_index, self.pp_weight, self.pd_index, self.pd_weight, self.gdata.pp_index, self.drug1, self.drug2, save_path, size=(30, 30), protein_name_dict=self.gdata.prot_graph_dict, drug_name_dict=self.gdata.drug_graph_dict)
 
         if if_show:
             self.fig.show()
