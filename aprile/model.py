@@ -30,13 +30,13 @@ aprile_dir = os.path.dirname(os.path.abspath(__file__))
 # with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
 #     gdata = pickle.load(f)
 
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data_dict.pkl'), 'rb') as f:
+with open(os.path.join(aprile_dir, 'data_dir.pkl'), 'rb') as f:
     data = pickle.load(f)
 
-class DataTmp(object):
+class DataT(object):
     pass
 
-gdata = DataTmp()
+gdata = DataT()
 gdata.__dict__ = data
 
 class MultiInnerProductDecoder(torch.nn.Module):
