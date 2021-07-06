@@ -1,4 +1,13 @@
+# Sorted
+--find-links https://download.pytorch.org/whl/torch_stable.html
+cython
+https://download.pytorch.org/whl/cpu/torch-1.4.0%2Bcpu-cp37-cp37m-linux_x86_64.whl
+https://pytorch-geometric.com/whl/torch-1.4.0+cpu/torch_scatter-2.0.4-cp37-cp37m-linux_x86_64.whl
+https://pytorch-geometric.com/whl/torch-1.4.0+cpu/torch_sparse-0.6.1-cp37-cp37m-linux_x86_64.whl
+
+
 recommonmark
+sphinx
 sphinx-rtd-theme
 nbsphinx
 nbsphinx-link
@@ -8,7 +17,6 @@ scipy
 matplotlib
 networkx
 pandas
+numpy
 goatools
-cython
 torch-geometric
-torchvision
