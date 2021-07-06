@@ -18,6 +18,7 @@ Welcome to APRILE's documentation!
    :caption: APRILE API:
 
    aprile
+   aprile.model
 
 Indices and tables
 ==================
