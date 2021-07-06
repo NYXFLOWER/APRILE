@@ -14,6 +14,7 @@ class DataTmp(object):
 gdata = DataTmp()
 gdata.__dict__ = data
 
+
 class PureAprileQuery(object):
     """For query I/O only
     """
