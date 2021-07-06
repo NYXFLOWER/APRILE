@@ -14,9 +14,7 @@ class DataTmp(object):
 gdata = DataTmp()
 gdata.__dict__ = data
 
-class PureAprileQuery(object):
-    """For query I/O only
-    """
+class PoseQueryTmp(object):
     @staticmethod
     def load_from_pkl(file):
         with open(file, 'rb') as f:
