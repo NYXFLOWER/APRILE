@@ -30,7 +30,7 @@ aprile_dir = os.path.dirname(os.path.abspath(__file__))
 # with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
 #     gdata = pickle.load(f)
 
-with open(os.path.join(aprile_dir, 'data_dict.pkl'), 'rb') as f:
+with open(os.path.join(aprile_dir, 'data_dir.pkl'), 'rb') as f:
     data = pickle.load(f)
 
 class DataT(object):
