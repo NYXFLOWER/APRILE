@@ -1,10 +1,10 @@
 import torch
-# from torch_scatter import scatter_add
-# from torch_geometric.utils import add_remaining_self_loops
+from torch_scatter import scatter_add
+from torch_geometric.utils import add_remaining_self_loops
 import numpy as np
 import pandas
 from torch.nn import Parameter
-# from torch_geometric.nn.conv import MessagePassing
+from torch_geometric.nn.conv import MessagePassing
 import torch.nn.functional as F
 import os
 import pickle
