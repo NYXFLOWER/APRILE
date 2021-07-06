@@ -133,5 +133,5 @@ environment.yml
 environment_query.txt
 gene2go
 go-basic.obo
-# aprile/data.pkl
+aprile/data.pkl
 aprile/data_dict.pkl
