@@ -1,8 +1,8 @@
 aprile package
 ==============
 
-Submodules
-----------
+.. Submodules
+.. ----------
 
 aprile.model module
 -------------------

@@ -33,7 +33,7 @@ version = get_version("aprile", "__init__.py")
 setup(
 	name="aprile",
 	version=version,
-	description="Adverse Polypharmacy Reaction Intelligent Learner and Explainer (APRILE) -- An explainable machine learning framework for exploring the molecular mechanisms of drug side effects (including disease, symptoms and mentel disorders).",
+	description="Adverse Polypharmacy Reaction Intelligent Learner and Explainer (APRILE) -- An explainable machine learning framework for exploring the molecular mechanisms of adverse drug reactions caused by polypharmacy (including disease, symptoms and mentel disorders).",
 	long_description=readme,	
 	long_description_content_type="text/markdown",
 	author="Hao Xu",
@@ -52,10 +52,10 @@ setup(
 	keywords="machine learning, bioinformatics, graph neural network, adverse drug reaction, disease mechanism",
 	include_package_data=True,
 	package_data={
-		'': ['*.pt', '*.pkl']
+		'': ['*.pt']
 	},
 	data_files=[
-		('', ['aprile/data.pkl', 'aprile/POSE-pred.pt', 'aprile/data_dict.pkl'])
+		('', ['aprile/POSE-pred.pt'])
 	],
 	classifiers=[
 		"Intended Audience :: Developers",

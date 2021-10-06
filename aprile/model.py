@@ -27,8 +27,8 @@ EPS = 1e-13
 
 # load data
 aprile_dir = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
-    gdata = pickle.load(f)
+# with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
+#     gdata = pickle.load(f)
 
 
 class MultiInnerProductDecoder(torch.nn.Module):
@@ -434,17 +434,18 @@ class AprilePredictorPretrained(object):
 
         return drug1, drug2, side_effect, P[index_filter].tolist()
 
+
 class Aprile(object):
     """APRILE: explaning polypharmacy side effect using a pre-trained APRILE-Pred model
 
     Args:
         device (str): 'cpu' or 'cuda', for running APRILE-Explainer
     """
-    def __init__(self, device='cpu'):
+    def __init__(self, gdata, device='cpu'):
         # load pretrained model
+        self.gdata = gdata
         self.model, self.name = self.__pretrained_model_construction__()
         self.model.load_state_dict(torch.load(os.path.join(aprile_dir, 'POSE-pred.pt')))
-
         self.device = device
         self.__GO_enrich__()
 
@@ -490,9 +491,9 @@ class Aprile(object):
         nhids_gcn = [64, 32, 32]
         prot_out_dim = sum(nhids_gcn)
         drug_dim = 128
-        pp = PP(gdata.n_prot, nhids_gcn)
-        pd = PD(prot_out_dim, drug_dim, gdata.n_drug)
-        mip = MultiInnerProductDecoder(drug_dim + pd.d_dim_feat, gdata.n_et)
+        pp = PP(self.gdata.n_prot, nhids_gcn)
+        pd = PD(prot_out_dim, drug_dim, self.gdata.n_drug)
+        mip = MultiInnerProductDecoder(drug_dim + pd.d_dim_feat, self.gdata.n_et)
         name = 'poly-' + str(nhids_gcn) + '-' + str(drug_dim)
 
         return AprilePredModel(pp, pd, mip).to('cpu'), name
@@ -506,7 +507,7 @@ class Aprile(object):
         Returns:
             AprileQuery: prediction results
         """
-        train_idx, train_et = remove_bidirection(gdata.train_idx, gdata.train_et)
+        train_idx, train_et = remove_bidirection(self.gdata.train_idx, self.gdata.train_et)
 
         return self.predict(train_idx[0].tolist(), train_idx[1].tolist(), train_et.tolist(), threshold=threshold)
 
@@ -519,7 +520,7 @@ class Aprile(object):
         Returns:
             AprileQuery: prediction results
         """
-        test_idx, test_et = remove_bidirection(gdata.test_idx, gdata.test_et)
+        test_idx, test_et = remove_bidirection(self.gdata.test_idx, self.gdata.test_et)
 
         return self.predict(test_idx[0].tolist(), test_idx[1].tolist(), test_et.tolist(), threshold=threshold)
 
@@ -539,7 +540,7 @@ class Aprile(object):
             AprileQuery: prediction results
         """
         device = self.device
-        data = gdata.to(device)
+        data = self.gdata.to(device)
         model = self.model.to(device)
         model.eval()
 
@@ -580,7 +581,7 @@ class Aprile(object):
 
         # return a query object
         query = AprileQuery(drug1, drug2, side_effect)
-        query.set_pred_result(P[index_filter].tolist(), piu_score.tolist(), ppiu_score.tolist())
+        query.set_pred_result(P[index_filter].tolist(), piu_score.tolist(), ppiu_score.tolist(), self.gdata.drug_idx_to_id, self.gdata.drug_idx_to_name, self.gdata.side_effect_idx_to_name)
 
         return query 
 
@@ -609,14 +610,14 @@ class Aprile(object):
         query.set_exp_result(pp_left_index, pp_left_weight, pd_left_index, pd_left_weight)
 
         goea_results_sig = self.enrich_go(pp_left_index)
-        query.set_enrich_result(goea_results_sig)
+        query.set_enrich_result(goea_results_sig, self.gdata.geneid2symbol)
 
         return query
 
     def enrich_go(self, pp_left_index):
         """gene ontology enrichment analysis"""
         geneids_study = pp_left_index.flatten()  # geneid2symbol.keys()
-        geneids_study = [int(gdata.prot_idx_to_id[idx].replace('GeneID', '')) for idx in geneids_study]
+        geneids_study = [int(self.gdata.prot_idx_to_id[idx].replace('GeneID', '')) for idx in geneids_study]
 
         goea_results_all = self.goeaobj.run_study(geneids_study)
         goea_results_sig = [r for r in goea_results_all if r.p_fdr_bh < 0.05]
@@ -625,7 +626,7 @@ class Aprile(object):
         
     def __explain(self, query):
         """the AprileExplainer module"""
-        data = gdata
+        data = self.gdata
         model = self.model
         device = self.device
         
@@ -731,7 +732,7 @@ class AprileQuery(object):
 
             print('pp_edge: {}, pd_edge:{}\n'.format(pp_index.shape[1], pd_index.shape[1]))
 
-    def set_enrich_result(self, goea_results_sig):
+    def set_enrich_result(self, goea_results_sig, geneid2symbol):
         if len(goea_results_sig):
             self.if_enrich = True
 
@@ -740,15 +741,35 @@ class AprileQuery(object):
             df_p = pandas.DataFrame([{'p_fdr_bh': g.__dict__['p_fdr_bh']} for g in goea_results_sig])
             df_go = df_go1.merge(df_p, left_index=True, right_index=True)
 
-            go_genes = pandas.DataFrame([{'id': g.goterm.id, 'gene': s, 'symbol': gdata.geneid2symbol[s]} for g in goea_results_sig for s in g.study_items])
+            go_genes = pandas.DataFrame([{'id': g.goterm.id, 'gene': s, 'symbol': geneid2symbol[s]} for g in goea_results_sig for s in g.study_items])
         
             self.GOEnrich_table = df_go.merge(go_genes, on='id')
 
-    def set_pred_result(self, probability, piu_score, ppiu_score):
+    def set_pred_result(self, probability, piu_score, ppiu_score, drug_idx_to_id, drug_idx_to_name, side_effect_idx_to_name):
         self.probability = probability
         self.piu_score = piu_score
         self.ppiu_score = ppiu_score
         self.if_pred = True
+
+        keys = ['drug_1', 'CID_1', 'name_1', 'drug_2', 'CID_2', 'name_2', 'side_effect', 'side_effect_name', 'prob', 'piu', 'ppiu']
+        cid1 = [int(drug_idx_to_id[c][3:]) for c in self.drug1]
+        cid2 = [int(drug_idx_to_id[c][3:]) for c in self.drug2]
+        name1 = [drug_idx_to_name[c] for c in self.drug1]
+        name2 = [drug_idx_to_name[c] for c in self.drug2]
+        se_name = [side_effect_idx_to_name[c] for c in self.side_effect]
+
+        if not self.if_pred:
+            print('WARING: The query is not predicted')
+            keys = keys[:8]
+            df = [self.drug1, cid1, name1, self.drug2, cid2, name2, self.side_effect, se_name]
+        else:
+            df = [self.drug1, cid1, name1, self.drug2, cid2, name2, self.side_effect, se_name, self.probability, self.piu_score, self.ppiu_score]
+
+        df = pandas.DataFrame(df).T
+        df.columns = keys
+
+        self.pred_df = df
+
 
     def get_query(self):
         """get query details
@@ -761,24 +782,7 @@ class AprileQuery(object):
         Returns:
             pandas.DataFrame: DDIs, probability, PIU, PPIU and additional mappings
         """
-        keys = ['drug_1', 'CID_1', 'name_1', 'drug_2', 'CID_2', 'name_2', 'side_effect', 'side_effect_name', 'prob', 'piu', 'ppiu']
-        cid1 = [int(gdata.drug_idx_to_id[c][3:]) for c in self.drug1]
-        cid2 = [int(gdata.drug_idx_to_id[c][3:]) for c in self.drug2]
-        name1 = [gdata.drug_idx_to_name[c] for c in self.drug1]
-        name2 = [gdata.drug_idx_to_name[c] for c in self.drug2]
-        se_name = [gdata.side_effect_idx_to_name[c] for c in self.side_effect]
-
-        if not self.if_pred:
-            print('WARING: The query is not predicted')
-            keys = keys[:8]
-            df = [self.drug1, cid1, name1, self.drug2, cid2, name2, self.side_effect, se_name]
-        else:
-            df = [self.drug1, cid1, name1, self.drug2, cid2, name2, self.side_effect, se_name, self.probability, self.piu_score, self.ppiu_score]
-
-        df = pandas.DataFrame(df).T
-        df.columns = keys
-
-        return df
+        return self.pred_df
 
     def get_GOEnrich_table(self):
         """get Gene Ontology analysis results
@@ -792,7 +796,7 @@ class AprileQuery(object):
 
         return self.GOEnrich_table
     
-    def get_subgraph(self, if_show=True, save_path=None):
+    def get_subgraph(self, if_show=True, save_path=None, prot_graph_dict=None, drug_name_dict=None):
         """Visualize explanation
 
         Args:
@@ -806,7 +810,7 @@ class AprileQuery(object):
             print('ERROR: The query is not explained')
             return
 
-        _, self.fig = visualize_graph(self.pp_index, self.pp_weight, self.pd_index, self.pd_weight, gdata.pp_index, self.drug1, self.drug2, save_path, size=(30, 30), protein_name_dict=gdata.prot_graph_dict, drug_name_dict=gdata.drug_graph_dict)
+        _, self.fig = visualize_graph(self.pp_index, self.pp_weight, self.pd_index, self.pd_weight, self.drug1, self.drug2, save_path, size=(30, 30), protein_name_dict=prot_graph_dict, drug_name_dict=drug_graph_dict)
 
         if if_show:
             self.fig.show()
