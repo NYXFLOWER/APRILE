@@ -26,7 +26,7 @@ np.random.seed(1111)
 EPS = 1e-13
 
 # load data
-# aprile_dir = os.path.dirname(os.path.abspath(__file__))
+aprile_dir = os.path.dirname(os.path.abspath(__file__))
 # with open(os.path.join(aprile_dir, 'data.pkl'), 'rb') as f:
 #     gdata = pickle.load(f)
 
@@ -434,6 +434,7 @@ class AprilePredictorPretrained(object):
 
         return drug1, drug2, side_effect, P[index_filter].tolist()
 
+
 class Aprile(object):
     """APRILE: explaning polypharmacy side effect using a pre-trained APRILE-Pred model
 
@@ -442,9 +443,9 @@ class Aprile(object):
     """
     def __init__(self, gdata, device='cpu'):
         # load pretrained model
+        self.gdata = gdata
         self.model, self.name = self.__pretrained_model_construction__()
         self.model.load_state_dict(torch.load(os.path.join(aprile_dir, 'POSE-pred.pt')))
-        self.gdata = gdata
         self.device = device
         self.__GO_enrich__()
 
@@ -795,7 +796,7 @@ class AprileQuery(object):
 
         return self.GOEnrich_table
     
-    def get_subgraph(self, if_show=True, save_path=None):
+    def get_subgraph(self, if_show=True, save_path=None, prot_graph_dict=None, drug_name_dict=None):
         """Visualize explanation
 
         Args:
@@ -809,7 +810,7 @@ class AprileQuery(object):
             print('ERROR: The query is not explained')
             return
 
-        _, self.fig = visualize_graph(self.pp_index, self.pp_weight, self.pd_index, self.pd_weight, gdata.pp_index, self.drug1, self.drug2, save_path, size=(30, 30), protein_name_dict=gdata.prot_graph_dict, drug_name_dict=gdata.drug_graph_dict)
+        _, self.fig = visualize_graph(self.pp_index, self.pp_weight, self.pd_index, self.pd_weight, self.drug1, self.drug2, save_path, size=(30, 30), protein_name_dict=prot_graph_dict, drug_name_dict=drug_graph_dict)
 
         if if_show:
             self.fig.show()

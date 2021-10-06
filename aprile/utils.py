@@ -164,7 +164,7 @@ def get_edge_index_from_coo(mat, bidirection):
         return torch.from_numpy(tmp.astype(np.int64))
 
 
-def visualize_graph(pp_idx, pp_weight, pd_idx, pd_weight, pp_adj, d1, d2,
+def visualize_graph(pp_idx, pp_weight, pd_idx, pd_weight, d1, d2,
                     out_path,
                     protein_name_dict=None, drug_name_dict=None, hiden=True,
                     size=(40, 40)):
@@ -178,7 +178,6 @@ def visualize_graph(pp_idx, pp_weight, pd_idx, pd_weight, pp_adj, d1, d2,
         pp_weight (torch.Tensor): float tensor (1, n_pp_edges), values with (0, 1)
         pd_idx (torch.Tensor): integer tensor (2, n_pd_edges)
         pd_weight (torch.Tensor): float tensor (1, n_pd_edges), values with (0, 1)
-        pp_adj ([type]): [description]
         d1 (list): drug list
         d2 (list): drug list pairing with `d1`
         out_path (str): output path
@@ -224,22 +223,22 @@ def visualize_graph(pp_idx, pp_weight, pd_idx, pd_weight, pp_adj, d1, d2,
         G.add_edge(t1, t2, weights=999)
         dd_edge.append((t1, t2))
 
-    if hiden:
-        # add underline pp edges
-        pp_edge_idx = pp_idx.tolist()
-        pp_edge_idx = set(zip(pp_edge_idx[0], pp_edge_idx[1]))
-        p_node_idx = list(set(pp_idx.flatten().tolist()))
-        pp_adj_idx = pp_adj.tolist()
-        pp_adj_idx = set(zip(pp_adj_idx[0], pp_adj_idx[1]))
+    # if hiden:
+    #     # add underline pp edges
+    #     pp_edge_idx = pp_idx.tolist()
+    #     pp_edge_idx = set(zip(pp_edge_idx[0], pp_edge_idx[1]))
+    #     p_node_idx = list(set(pp_idx.flatten().tolist()))
+    #     pp_adj_idx = pp_adj.tolist()
+    #     pp_adj_idx = set(zip(pp_adj_idx[0], pp_adj_idx[1]))
 
-        combins = [c for c in combinations(p_node_idx, 2)]
-        for i, j in combins:
-            if (i, j) in pp_adj_idx or (j, i) in pp_adj_idx:
-                if (i, j) not in pp_edge_idx and (j, i) not in pp_edge_idx:
-                    G.add_edge(protein_name_dict[i], protein_name_dict[j],
-                               weights='0')
-                    pp_link.append((protein_name_dict[i], protein_name_dict[j]))
-        print(len(pp_link))
+    #     combins = [c for c in combinations(p_node_idx, 2)]
+    #     for i, j in combins:
+    #         if (i, j) in pp_adj_idx or (j, i) in pp_adj_idx:
+    #             if (i, j) not in pp_edge_idx and (j, i) not in pp_edge_idx:
+    #                 G.add_edge(protein_name_dict[i], protein_name_dict[j],
+    #                            weights='0')
+    #                 pp_link.append((protein_name_dict[i], protein_name_dict[j]))
+    #     print(len(pp_link))
     # draw figure
     plt.figure(figsize=size)
 
