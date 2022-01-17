@@ -49,7 +49,7 @@ pip install aprile
 
 ## Usage
 
-Firstly, download the data file `kgdata.pkl` using this [link](https://drive.google.com/file/d/1PYzJB9b0bDb3wQXgu7Mj96h5YbJJrCTq/view?usp=sharing), and put it into your working directory.
+Firstly, download the data file `kgdata.pkl` using this [link](https://drive.google.com/file/d/1ZT9VhybmnOxHsvzFvt7DKRQd3EZZheK9/view?usp=sharing), and put it into your working directory.
 
 Secondly, load data and APRILE model.
 ```python
@@ -58,6 +58,7 @@ from aprile.model import *
 gdata = AprileQuery.load_from_pkl('kgdata.pkl')	
 aprile = Aprile(gdata, device='cuda')	          # device='cpu' if using CPUs
 ```
+*\* If you prefer to use torch > 1.8 and torch-geometric > 2.0, see [#2](/../../issues/2) when you prepare data for aprile models.*
 
 Next, let us familiar with the data `gdata`. It's data type is [`torch_geometric.data.data.Data`]((https://pytorch-geometric.readthedocs.io/en/latest/modules/data.html)) and its attribute list can be obtained by using `var(gdata).keys()`. It mainly contains four parts: 
 1) a pharmacogenomic knowledge graph: `gdata.pp_index` and `gdata.pd_index`
