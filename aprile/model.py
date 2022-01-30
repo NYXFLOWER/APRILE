@@ -601,7 +601,7 @@ class Aprile(object):
 
         if if_auto_tuning:
             while pp_left_index.shape[1]==0:
-                if query.regularization < 0.0001:
+                if query.regularization < 0.01:
                     print("Warning: auto tuning forced to stop.")
                     break
                 query.regularization /= 2
@@ -646,7 +646,7 @@ class Aprile(object):
 
         tmp = 0.0
         pre_mask.reset_parameters()
-        for i in range(9999):
+        for i in range(3333):
             model.train()
             pre_mask.desaturate()
             optimizer.zero_grad()
@@ -810,7 +810,7 @@ class AprileQuery(object):
             print('ERROR: The query is not explained')
             return
 
-        _, self.fig = visualize_graph(self.pp_index, self.pp_weight, self.pd_index, self.pd_weight, self.drug1, self.drug2, save_path, size=(30, 30), protein_name_dict=prot_graph_dict, drug_name_dict=drug_graph_dict)
+        _, self.fig = visualize_graph(self.pp_index, self.pp_weight, self.pd_index, self.pd_weight, self.drug1, self.drug2, save_path, size=(30, 30), protein_name_dict=prot_graph_dict, drug_name_dict=drug_name_dict)
 
         if if_show:
             self.fig.show()
