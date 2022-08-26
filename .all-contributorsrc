@@ -1,0 +1,25 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "laurenceyang33",
+      "name": "laurenceyang33",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8367078?v=4",
+      "profile": "https://github.com/laurenceyang33",
+      "contributions": [
+        "doc",
+        "test"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "APRILE",
+  "projectOwner": "NYXFLOWER",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true
+}
